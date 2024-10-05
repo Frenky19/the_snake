@@ -36,7 +36,7 @@ SPEED = 10
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 
 # Заголовок окна игрового поля:
-pygame.display.set_caption('Змейка')
+pygame.display.set_caption('Snake')
 
 # Настройка времени:
 clock = pygame.time.Clock()
@@ -125,7 +125,7 @@ class Snake(GameObject):
             head_y + dir_y * GRID_SIZE) % SCREEN_HEIGHT)
         # Добавляет новую голову
         self.positions.insert(0, new_head)
-        # Убирает последний элемент, если не съедено яблоко
+        # Убирает последний элемент, если не съедено яблоко"""
         if len(self.positions) > self.length:
             self.positions.pop()
 
@@ -142,7 +142,6 @@ class Snake(GameObject):
             self.length -= 1
             self.positions.pop()
             if len(self.positions) == 0:
-                waiting()
                 self.reset()
             hedgehog.position = (randrange(0, GRID_WIDTH) * GRID_SIZE), (
                 randrange(0, GRID_HEIGHT) * GRID_SIZE)
@@ -191,41 +190,15 @@ def handle_keys(game_object):
                 game_object.next_direction = RIGHT
 
 
-def waiting():
-    """
-    Функция отвечающая за приостановку игры
-    и вывод сообщения на экран до тех пор,
-    пока пользователь не нажмет любую клавишу.
-    """
-    screen.fill(BOARD_BACKGROUND_COLOR)
-    font = pygame.font.SysFont(None, 50)
-    text = font.render('Press any button to START', True, (255, 255, 0))
-    screen.blit(text, (
-        SCREEN_WIDTH // 2 - text.get_width() // 2,
-        SCREEN_HEIGHT // 2 - text.get_height() // 2))
-    pygame.display.update()
-    waiting = True
-    while waiting:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                raise SystemExit
-            if event.type == pygame.KEYDOWN:
-                waiting = False
-
-
 def main():
-    """Логика игры"""
+    """Логика игры."""
     pygame.init()
-    """Экземпляры классов"""
+    # Экземпляры классов
     apple = Apple()
     snake = Snake()
     hedgehog = Hedgehog()
-    """Вывод главного экрана с ожиданием ввода пользователя"""
-    waiting()
-    """Игровой цикл"""
     while True:
-        """Увеличение скорости в зависимости от длины змеи"""
+        # Увеличение скорости в зависимости от длины змеи
         speed = SPEED + len(snake.positions) // 5
         clock.tick(speed)
         screen.fill(BOARD_BACKGROUND_COLOR)
@@ -235,7 +208,6 @@ def main():
         snake.check_eat_apple(apple)
         snake.check_meet_hedgehog(hedgehog)
         if snake.check_eaten_by_herself():
-            waiting()
             snake.reset()
         apple.draw()
         hedgehog.draw()
