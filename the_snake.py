@@ -1,8 +1,7 @@
 from random import randrange
+from sys import exit
 
 import pygame as pg
-
-from sys import exit
 
 # Константы для размеров поля и сетки:
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
@@ -77,7 +76,18 @@ class GameObject:
 
     def draw(self):
         """Заглушка, будет переопределен в дочерних классах."""
-        raise NotImplementedError
+        raise NotImplementedError(
+            f'Метод draw не переопределен в классе: {self.__class__.__name__}'
+        )
+
+    def clean(self, position):
+        """Общий метод, затирающий элементы"""
+        pg.draw.rect(
+            screen,
+            BOARD_BACKGROUND_COLOR,
+            pg.Rect(position[0], position[1],
+                    GRID_SIZE, GRID_SIZE)
+        )
 
 
 class InteactiveObject(GameObject):
@@ -90,26 +100,25 @@ class InteactiveObject(GameObject):
 
     def __init__(
         self,
-        occupied_positions_snake=DEFAULT_POSITION,
-        body_color=BOARD_BACKGROUND_COLOR
+        occupied_positions=DEFAULT_POSITION,
+        body_color=BOARD_BACKGROUND_COLOR,
     ):
         """Конструктор классов для взаимодействия."""
         super().__init__(body_color=body_color)
-        self.randomize_position(occupied_positions_snake)
+        self.prev_position = self.position
+        self.randomize_position(occupied_positions)
 
-    def randomize_position(self, occupied_positions_snake=DEFAULT_POSITION):
+    def randomize_position(self, occupied_positions=None):
         """Задает случайную ячейку для появления объекта."""
-        if not occupied_positions_snake:
-            occupied_positions_snake = []
-        while True:
+        if not occupied_positions:
+            occupied_positions = []
+        while self.position in occupied_positions:
             self.position = (randrange(0, GRID_WIDTH) * GRID_SIZE), (
                 randrange(0, GRID_HEIGHT) * GRID_SIZE)
-            if self.position not in occupied_positions_snake:
-                break
 
-    def draw(self, screen, position, body_color):
+    def draw(self, screen):
         """Отрисовка объекта."""
-        self.draw_base(screen, position, body_color)
+        self.draw_base(screen)
 
 
 class Apple(InteactiveObject):
@@ -120,9 +129,9 @@ class Apple(InteactiveObject):
     Яблоком,то ее длина вырастет на 1.
     """
 
-    def __init__(self, occupied_positions_snake=DEFAULT_POSITION):
+    def __init__(self, occupied_positions=DEFAULT_POSITION):
         """Конструтор класса Яблоко"""
-        super().__init__(occupied_positions_snake, APPLE_COLOR)
+        super().__init__(occupied_positions, APPLE_COLOR)
 
 
 class Hedgehog(InteactiveObject):
@@ -131,37 +140,11 @@ class Hedgehog(InteactiveObject):
 
     Если голова Змейки попадет на ячейку с
     Ёжиком,то ее длина уменьшится на 1.
-    randomize_position -- выбирает случайную ячейку
     """
 
-    def __init__(
-        self,
-        occupied_positions_snake=DEFAULT_POSITION,
-        occupied_positions_apple=None
-    ):
+    def __init__(self, occupied_positions):
         """Конструктор класса Ёжик"""
-        super().__init__(occupied_positions_snake, HEDGEHOG_COLOR)
-        self.randomize_position(
-            occupied_positions_snake,
-            occupied_positions_apple
-        )
-
-    def randomize_position(
-        self,
-        occupied_positions_snake=DEFAULT_POSITION,
-        occupied_positions_apple=None
-    ):
-        """Метод, выбирающий свободную от Змейки и Яблока позицию ячейку"""
-        if not occupied_positions_snake:
-            occupied_positions_snake = []
-        while True:
-            self.position = (
-                randrange(0, GRID_WIDTH) * GRID_SIZE,
-                randrange(0, GRID_HEIGHT) * GRID_SIZE
-            )
-            if (self.position not in occupied_positions_snake
-               and self.position != occupied_positions_apple):
-                break
+        super().__init__(occupied_positions, HEDGEHOG_COLOR)
 
 
 class Snake(GameObject):
@@ -182,38 +165,31 @@ class Snake(GameObject):
 
     def update_direction(self, next_direction):
         """Метод обновления направления после нажатия на кнопку."""
-        if next_direction:
-            self.direction = next_direction
-            self.next_direction = None
+        self.direction = next_direction
 
     def move(self):
         """Перемещение Змейки."""
+        self.last = None
         head_x, head_y = self.positions[0]
         dir_x, dir_y = self.direction
         new_head = ((head_x + dir_x * GRID_SIZE) % SCREEN_WIDTH, (
             head_y + dir_y * GRID_SIZE) % SCREEN_HEIGHT)
         # Добавляет новую голову
         self.positions.insert(0, new_head)
-        # Убирает последний элемент, если не съедено яблоко
+        # Убирает последний элемент, если не съедено яблоко и затирает хвост
         if len(self.positions) > self.length:
-            self.positions.pop()
+            last = self.positions.pop()
+            self.clean(last)
 
     def get_head_position(self):
         """Позиция первого элемента (головы) Змейки."""
         return self.positions[0]
 
-    def get_tail_position(self):
-        """Позиция последнего элемента (хвоста) Змейки"""
-        return self.positions[-1]
-
-    def draw(self):
+    def draw(self, screen):
         """Метод отрисовывающий Змейку на экране."""
-        head_rect = pg.Rect(self.get_head_position(), (GRID_SIZE, GRID_SIZE))
-        pg.draw.rect(screen, self.body_color, head_rect)
-        pg.draw.rect(screen, BORDER_COLOR, head_rect, 1)
-        tail_rect = pg.Rect(self.get_tail_position(), (GRID_SIZE, GRID_SIZE))
-        pg.draw.rect(screen, self.body_color, tail_rect)
-        pg.draw.rect(screen, BORDER_COLOR, tail_rect, 1)
+        self.draw_base(screen, self.get_head_position())
+        if self.last:
+            self.clean(self.last)
 
     def reset(self):
         """
@@ -252,58 +228,36 @@ def main():
     # Экземпляры классов
     snake = Snake()
     apple = Apple(snake.positions)
-    hedgehog = Hedgehog(snake.positions, apple.position)
-    # Создаем фон
-    screen.fill(BOARD_BACKGROUND_COLOR)
+    hedgehog = Hedgehog([*snake.positions, apple.position])
     # Бесконечный цикл
     while True:
         # Увеличение скорости в зависимости от длины змеи
         speed = SPEED + len(snake.positions) // 5
         clock.tick(speed)
         handle_keys(snake)
-        # Запоминаем последнее значение "хвоста"
-        last_position = snake.positions[-1]
         snake.move()
-        # Затираем ячейку в цвет фона после движения Змейки
-        if last_position:
-            pg.draw.rect(
-                screen,
-                BOARD_BACKGROUND_COLOR,
-                pg.Rect(last_position[0], last_position[1],
-                        GRID_SIZE, GRID_SIZE)
-            )
         # Проверка на столкновение с Яблоком
         if snake.get_head_position() == apple.position:
             snake.length += 1
             apple.randomize_position(snake.positions)
         # Проверка на стокновение с Ёжиком
-        if snake.get_head_position() == hedgehog.position:
+        elif snake.get_head_position() == hedgehog.position:
             snake.length -= 1
             if snake.positions:
-                last_position = snake.positions.pop()
-                # Затирка ячейки, где находился Ёжик
-                pg.draw.rect(
-                    screen,
-                    BOARD_BACKGROUND_COLOR,
-                    pg.Rect(last_position[0], last_position[1],
-                            GRID_SIZE, GRID_SIZE)
-                )
-            if len(snake.positions) == 0:
+                last = snake.positions.pop()
+                snake.clean(last)  # Затирка ячейки, где находился Ёжик
+            if not snake.positions:
                 snake.reset()
                 apple.randomize_position(snake.positions)
-            hedgehog.randomize_position(snake.positions, apple.position)
+            hedgehog.randomize_position([*snake.positions, apple.position])
         # Проверка на стокновение самой с собой
-        if snake.get_head_position() in snake.positions[1:]:
+        elif snake.get_head_position() in snake.positions[1:]:
             snake.reset()
             apple.randomize_position(snake.positions)
-            hedgehog.randomize_position(snake.positions, apple.position)
-        snake.draw()
-        apple.draw(screen, position=apple.position, body_color=APPLE_COLOR)
-        hedgehog.draw(
-            screen,
-            position=hedgehog.position,
-            body_color=HEDGEHOG_COLOR
-        )
+            hedgehog.randomize_position([*snake.positions, apple.position])
+        snake.draw(screen)
+        apple.draw(screen)
+        hedgehog.draw(screen)
         pg.display.update()
 
 
