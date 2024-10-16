@@ -108,13 +108,16 @@ class InteactiveObject(GameObject):
         self.prev_position = self.position
         self.randomize_position(occupied_positions)
 
-    def randomize_position(self, occupied_positions=None):
+    def randomize_position(self, occupied_positions=DEFAULT_POSITION):
         """Задает случайную ячейку для появления объекта."""
-        if not occupied_positions:
+        if occupied_positions is None:
             occupied_positions = []
-        while self.position in occupied_positions:
-            self.position = (randrange(0, GRID_WIDTH) * GRID_SIZE), (
+        while True:
+            position = (randrange(0, GRID_WIDTH) * GRID_SIZE), (
                 randrange(0, GRID_HEIGHT) * GRID_SIZE)
+            if position not in occupied_positions:
+                self.position = position
+                break
 
     def draw(self, screen):
         """Отрисовка объекта."""
