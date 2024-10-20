@@ -199,10 +199,11 @@ class Snake(GameObject):
         Метод, отвечающий за начало новой
         партии при окончании предыдущей.
         """
-        screen.fill(BOARD_BACKGROUND_COLOR)
         self.length = 1
         self.positions = [self.position]
         self.direction = RIGHT
+        waiting()
+        screen.fill(BOARD_BACKGROUND_COLOR)
 
 
 def handle_keys(game_object):
@@ -225,6 +226,29 @@ def handle_keys(game_object):
                 exit(0)
 
 
+def waiting():
+    """
+    Функция отвечающая за приостановку игры
+    и вывод сообщения на экран до тех пор,
+    пока пользователь не нажмет любую клавишу.
+    """
+    screen.fill(BOARD_BACKGROUND_COLOR)
+    font = pg.font.SysFont(None, 50)
+    text = font.render('Press any button to START', True, (255, 255, 0))
+    screen.blit(text, (
+        SCREEN_WIDTH // 2 - text.get_width() // 2,
+        SCREEN_HEIGHT // 2 - text.get_height() // 2))
+    pg.display.update()
+    waiting = True
+    while waiting:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                raise SystemExit
+            if event.type == pg.KEYDOWN:
+                waiting = False
+
+
 def main():
     """Логика игры."""
     pg.init()
@@ -232,6 +256,8 @@ def main():
     snake = Snake()
     apple = Apple(snake.positions)
     hedgehog = Hedgehog([*snake.positions, apple.position])
+    waiting()
+    screen.fill(BOARD_BACKGROUND_COLOR)
     # Бесконечный цикл
     while True:
         # Увеличение скорости в зависимости от длины змеи
