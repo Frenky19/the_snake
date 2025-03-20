@@ -48,7 +48,7 @@ pip install -r requirements.txt
 4. Запустить игру:
 
 ```bash
-pip python the_snake.py
+python the_snake.py
 ```
 
 ## Управление
