@@ -2,7 +2,7 @@
 
 Классическая игра "Змейка" с дополнительными механиками. Собирайте яблоки, избегайте ёжиков и не врезайтесь в себя!
 
-<img src="https://raw.githubusercontent.com/Frenky19/snake_game/main/screenshot.png" width="400" alt="Скриншот игры">
+<img src="https://raw.githubusercontent.com/Frenky19/the_snake/main/screenshot.png" width="400" alt="Скриншот игры">
 
 ## Особенности
 
